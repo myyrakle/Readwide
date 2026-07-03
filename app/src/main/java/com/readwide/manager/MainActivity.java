@@ -128,14 +128,9 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
     TextView recentClearAllButton;
     RecyclerView drawerFixedList;
     RecyclerView drawerStorageList;
-    RecyclerView drawerShortcutList;
-    View drawerRecentFoldersHeader;
-    TextView drawerRecentFoldersTitle;
-    TextView drawerRecentFoldersClearButton;
     int drawerTopInsetPx = 0;
     int drawerBottomInsetPx = 0;
     DrawerEntryAdapter drawerFixedEntryAdapter;
-    DrawerEntryAdapter drawerShortcutEntryAdapter;
     DrawerEntryAdapter drawerEntryAdapter;
     FileAdapter recentAdapter;
     EditText fileSearchInput;
@@ -249,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
     ImageButton mainOverflowButton;
     ImageButton mainOperationProgressButton;
     ImageButton mainPendingActionButton;
+    ImageButton mainSettingsButton;
     private LinearLayout mainToolbarActionContainer;
     boolean fileSelectionMode = false;
     final LinkedHashSet<String> selectedFilePaths = new LinkedHashSet<>();
@@ -825,13 +821,16 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
         toolbar.setNavigationOnClickListener(v -> {
             if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.START);
         });
+        toolbar.setContentInsetStartWithNavigation(dpToPx(92));
 
         updateMainOverflowButtonVisibility();
     }
 
     private void ensureMainOverflowButton(@NonNull Toolbar toolbar) {
         if (mainToolbarActionContainer != null && mainToolbarActionContainer.getParent() == toolbar
-                && mainOperationProgressButton != null && mainPendingActionButton != null && mainOverflowButton != null) {
+                && mainOperationProgressButton != null && mainPendingActionButton != null
+                && mainOverflowButton != null && mainSettingsButton != null) {
+            tintMainSettingsButton();
             tintMainOperationProgressButton();
             tintMainPendingActionButton();
             tintMainOverflowButton();
@@ -851,6 +850,24 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
         if (mainOverflowButton != null && mainOverflowButton.getParent() instanceof ViewGroup) {
             ((ViewGroup) mainOverflowButton.getParent()).removeView(mainOverflowButton);
         }
+        if (mainSettingsButton != null && mainSettingsButton.getParent() instanceof ViewGroup) {
+            ((ViewGroup) mainSettingsButton.getParent()).removeView(mainSettingsButton);
+        }
+
+        mainSettingsButton = new ImageButton(this);
+        mainSettingsButton.setBackgroundColor(Color.TRANSPARENT);
+        mainSettingsButton.setContentDescription(getString(R.string.settings));
+        mainSettingsButton.setPadding(dpToPx(9), dpToPx(9), dpToPx(9), dpToPx(9));
+        mainSettingsButton.setScaleType(ImageView.ScaleType.CENTER);
+        mainSettingsButton.setOnClickListener(v ->
+                startActivity(new Intent(this, SettingsActivity.class)));
+        tintMainSettingsButton();
+        Toolbar.LayoutParams settingsLp = new Toolbar.LayoutParams(
+                dpToPx(40),
+                dpToPx(48),
+                Gravity.START | Gravity.CENTER_VERTICAL);
+        settingsLp.setMarginStart(dpToPx(46));
+        toolbar.addView(mainSettingsButton, settingsLp);
 
         mainToolbarActionContainer = new LinearLayout(this);
         mainToolbarActionContainer.setOrientation(LinearLayout.HORIZONTAL);
@@ -901,6 +918,16 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
         updateMainOverflowButtonVisibility();
     }
 
+    private void tintMainSettingsButton() {
+        if (mainSettingsButton == null) return;
+        Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_settings);
+        if (icon != null) {
+            Drawable wrapped = DrawableCompat.wrap(icon.mutate());
+            DrawableCompat.setTint(wrapped, Color.WHITE);
+            mainSettingsButton.setImageDrawable(wrapped);
+        }
+    }
+
     private void tintMainOverflowButton() {
         if (mainOverflowButton == null) return;
         Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_more_vert);
@@ -933,6 +960,10 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
 
     void updateMainOverflowButtonVisibility() {
         if (fileSelectionMode) {
+            if (mainSettingsButton != null) {
+                mainSettingsButton.setVisibility(View.GONE);
+                mainSettingsButton.setEnabled(false);
+            }
             if (mainOverflowButton != null) {
                 mainOverflowButton.setVisibility(View.VISIBLE);
                 mainOverflowButton.setEnabled(!selectedFilePaths.isEmpty());
@@ -951,6 +982,11 @@ public class MainActivity extends AppCompatActivity implements FileAdapter.OnFil
 
         boolean inBrowse = !homeMode && !searchMode;
         boolean hasOperationDestination = hasVisibleFileOperationDestination();
+        if (mainSettingsButton != null) {
+            mainSettingsButton.setVisibility(View.VISIBLE);
+            mainSettingsButton.setEnabled(true);
+            mainSettingsButton.setAlpha(1.0f);
+        }
         if (mainOverflowButton != null) {
             mainOverflowButton.setVisibility(inBrowse ? View.VISIBLE : View.GONE);
             mainOverflowButton.setEnabled(inBrowse);
