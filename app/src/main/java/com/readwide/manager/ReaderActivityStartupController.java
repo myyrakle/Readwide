@@ -286,6 +286,13 @@ final class ReaderActivityStartupController {
                 }
                 activity.tapNavigation().handleSingleTap(x, y);
             }
+            @Override public void onDoubleTap(float x, float y) {
+                if (activity.dismissLingeringTxtSelectionBubble()) {
+                    return;
+                }
+                if (activity.toolbarVisible) activity.toggleToolbar();
+                else activity.showToolbar();
+            }
             @Override public void onTextLongPress(String selectedText, int charPosition, float x, float y) {
                 activity.showTxtSelectedTextActionDialog(selectedText, charPosition);
             }

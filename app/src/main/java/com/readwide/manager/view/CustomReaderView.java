@@ -49,6 +49,7 @@ public class CustomReaderView extends View {
 
     public interface ReaderListener {
         void onSingleTap(float x, float y);
+        default void onDoubleTap(float x, float y) {}
         void onTextLongPress(String selectedText, int charPosition, float x, float y);
         void onReaderScrollChanged();
         void onReaderManualScroll();
@@ -242,6 +243,7 @@ public class CustomReaderView extends View {
     private final Path textSelectionPath = new Path();
     private final OverScroller scroller;
     private final int touchSlop;
+    private final int doubleTapSlop;
     private final int minFlingVelocity;
     private final int maxFlingVelocity;
     private final int longPressTimeoutMs;
@@ -297,6 +299,10 @@ public class CustomReaderView extends View {
     private boolean dragging;
     private boolean longPressTriggered;
     private Runnable pendingLongPressRunnable;
+    private Runnable pendingSingleTapRunnable;
+    private float pendingSingleTapX;
+    private float pendingSingleTapY;
+    private long pendingSingleTapUpTime;
 
     public CustomReaderView(Context context) {
         this(context, null);
@@ -307,6 +313,7 @@ public class CustomReaderView extends View {
         scroller = new OverScroller(context);
         ViewConfiguration vc = ViewConfiguration.get(context);
         touchSlop = vc.getScaledTouchSlop();
+        doubleTapSlop = vc.getScaledDoubleTapSlop();
         minFlingVelocity = vc.getScaledMinimumFlingVelocity();
         maxFlingVelocity = vc.getScaledMaximumFlingVelocity();
         longPressTimeoutMs = TXT_TEXT_SELECTION_LONG_PRESS_TIMEOUT_MS;
@@ -849,7 +856,7 @@ public class CustomReaderView extends View {
                         clearTextSelection();
                         if (listener != null) listener.onTextLongPress("", -1, event.getX(), event.getY());
                     } else if (listener != null) {
-                        listener.onSingleTap(event.getX(), event.getY());
+                        handleTapCandidate(event.getX(), event.getY(), event.getEventTime());
                     }
                 } else {
                     velocityTracker.computeCurrentVelocity(1000, maxFlingVelocity);
@@ -894,8 +901,45 @@ public class CustomReaderView extends View {
     private void cancelPendingLongPress() {
         if (pendingLongPressRunnable != null) {
             removeCallbacks(pendingLongPressRunnable);
-            pendingLongPressRunnable = null;
         }
+        pendingLongPressRunnable = null;
+    }
+
+    private void handleTapCandidate(float x, float y, long eventTime) {
+        if (pendingSingleTapRunnable != null) {
+            long elapsed = eventTime - pendingSingleTapUpTime;
+            float dx = x - pendingSingleTapX;
+            float dy = y - pendingSingleTapY;
+            int slop = Math.max(touchSlop, doubleTapSlop);
+            if (elapsed <= ViewConfiguration.getDoubleTapTimeout()
+                    && (dx * dx + dy * dy) <= (slop * slop)) {
+                removeCallbacks(pendingSingleTapRunnable);
+                pendingSingleTapRunnable = null;
+                if (listener != null) listener.onDoubleTap(x, y);
+                return;
+            }
+            dispatchPendingSingleTapNow();
+        }
+
+        pendingSingleTapX = x;
+        pendingSingleTapY = y;
+        pendingSingleTapUpTime = eventTime;
+        pendingSingleTapRunnable = () -> {
+            Runnable runnable = pendingSingleTapRunnable;
+            pendingSingleTapRunnable = null;
+            if (runnable != null && listener != null) {
+                listener.onSingleTap(pendingSingleTapX, pendingSingleTapY);
+            }
+        };
+        postDelayed(pendingSingleTapRunnable, ViewConfiguration.getDoubleTapTimeout());
+    }
+
+    private void dispatchPendingSingleTapNow() {
+        Runnable runnable = pendingSingleTapRunnable;
+        if (runnable == null) return;
+        removeCallbacks(runnable);
+        pendingSingleTapRunnable = null;
+        if (listener != null) listener.onSingleTap(pendingSingleTapX, pendingSingleTapY);
     }
 
     public void clearTextSelection() {
