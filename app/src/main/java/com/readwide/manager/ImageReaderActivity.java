@@ -704,7 +704,7 @@ public class ImageReaderActivity extends AppCompatActivity {
 
         int action = event.getAction();
         if (action == KeyEvent.ACTION_DOWN) {
-            if (event.getRepeatCount() == 0) {
+            if (ReaderKeyMap.shouldTurnPageOnKeyDown(event.getRepeatCount())) {
                 showAdjacentImage(direction);
             }
             return true;

@@ -33,4 +33,8 @@ public final class ReaderKeyMap {
                 return 0;
         }
     }
+
+    public static boolean shouldTurnPageOnKeyDown(int repeatCount) {
+        return repeatCount >= 0;
+    }
 }
