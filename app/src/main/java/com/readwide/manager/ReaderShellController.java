@@ -59,7 +59,7 @@ final class ReaderShellController {
 
         int action = event.getAction();
         if (action == KeyEvent.ACTION_DOWN) {
-            if (event.getRepeatCount() == 0) {
+            if (ReaderKeyMap.shouldTurnPageOnKeyDown(event.getRepeatCount())) {
                 activity.pageBy(direction);
             }
             return true;

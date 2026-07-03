@@ -137,6 +137,13 @@ public class ExtractedReaderMathTest {
         assertEquals(0, ReaderKeyMap.pageTurnDirectionForKey(KeyEvent.KEYCODE_A));
     }
 
+    @Test
+    public void readerKeyMap_turnsPageForRepeatedKeyDowns() {
+        assertEquals(true, ReaderKeyMap.shouldTurnPageOnKeyDown(0));
+        assertEquals(true, ReaderKeyMap.shouldTurnPageOnKeyDown(1));
+        assertEquals(true, ReaderKeyMap.shouldTurnPageOnKeyDown(12));
+    }
+
     private static ArrayList<CustomReaderView.PageTextAnchor> randomAnchors(Random random) {
         ArrayList<CustomReaderView.PageTextAnchor> anchors = new ArrayList<>();
         int count = random.nextInt(24);
