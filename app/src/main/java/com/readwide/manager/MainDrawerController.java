@@ -33,18 +33,12 @@ final class MainDrawerController {
     void setupDrawerStorageList() {
         activity.drawerFixedList = activity.findViewById(R.id.drawer_fixed_list);
         activity.drawerStorageList = activity.findViewById(R.id.drawer_storage_list);
-        activity.drawerShortcutList = activity.findViewById(R.id.drawer_shortcut_list);
-        activity.drawerRecentFoldersHeader = activity.findViewById(R.id.drawer_recent_folders_header);
-        activity.drawerRecentFoldersTitle = activity.findViewById(R.id.drawer_recent_folders_title);
-        activity.drawerRecentFoldersClearButton = activity.findViewById(R.id.drawer_recent_folders_clear);
         setupDrawerSystemInsets();
 
         activity.drawerFixedEntryAdapter = new DrawerEntryAdapter();
-        activity.drawerShortcutEntryAdapter = new DrawerEntryAdapter();
         activity.drawerEntryAdapter = new DrawerEntryAdapter();
         activity.drawerFixedEntryAdapter.setUseShortcutBoxColor(false);
         activity.drawerEntryAdapter.setUseShortcutBoxColor(false);
-        activity.drawerShortcutEntryAdapter.setUseShortcutBoxColor(true);
 
         if (activity.drawerFixedList != null) {
             activity.drawerFixedList.setLayoutManager(new LinearLayoutManager(activity));
@@ -55,24 +49,12 @@ final class MainDrawerController {
             activity.drawerStorageList.setLayoutManager(new LinearLayoutManager(activity));
             activity.drawerStorageList.setAdapter(activity.drawerEntryAdapter);
         }
-        if (activity.drawerShortcutList != null) {
-            activity.drawerShortcutList.setLayoutManager(new LinearLayoutManager(activity));
-            activity.drawerShortcutList.setAdapter(activity.drawerShortcutEntryAdapter);
-            activity.drawerShortcutList.setNestedScrollingEnabled(true);
-        }
-
         DrawerEntryAdapter.OnEntryClickListener clickListener = activity::queueDrawerNavigation;
         DrawerEntryAdapter.OnEntryLongClickListener longClickListener = activity::handleDrawerEntryLongClick;
         activity.drawerFixedEntryAdapter.setListener(clickListener);
-        activity.drawerShortcutEntryAdapter.setListener(clickListener);
         activity.drawerEntryAdapter.setListener(clickListener);
         activity.drawerFixedEntryAdapter.setLongClickListener(longClickListener);
-        activity.drawerShortcutEntryAdapter.setLongClickListener(longClickListener);
         activity.drawerEntryAdapter.setLongClickListener(longClickListener);
-
-        if (activity.drawerRecentFoldersClearButton != null) {
-            activity.drawerRecentFoldersClearButton.setOnClickListener(v -> activity.showClearAllRecentFoldersDialog());
-        }
 
         rebuildDrawerStorageEntries();
     }
@@ -107,7 +89,6 @@ final class MainDrawerController {
     void rebuildDrawerStorageEntries() {
         List<DrawerEntry> fixedEntries = new ArrayList<>();
 
-        // Built-in storage shortcuts belong to the bottom-adjacent shortcut zone.
         fixedEntries.add(new DrawerEntry(
                 DrawerEntry.ACTION_RECENT,
                 R.drawable.ic_recent,
@@ -145,40 +126,17 @@ final class MainDrawerController {
                     downloads.getAbsolutePath()));
         }
 
-        // Bottom-adjacent shortcut zone: built-in storage shortcuts plus user-added folder shortcuts.
-        // This zone is independent from the recent-folder list and is pinned directly above
-        // File Open / Bookmarks / Settings. It keeps five visible rows and scrolls internally
-        // instead of growing when more shortcuts are added.
-        List<DrawerEntry> shortcutEntries = new ArrayList<>(fixedEntries);
-        addShortcutFolderEntries(shortcutEntries);
-        addShortcutPlaceholderRows(shortcutEntries);
+        addShortcutFolderEntries(fixedEntries);
+        addRecentFolderEntries(fixedEntries);
 
-        List<DrawerEntry> recentFolderEntries = new ArrayList<>();
-        addRecentFolderEntries(recentFolderEntries);
-
-        if (activity.drawerEntryAdapter != null) activity.drawerEntryAdapter.setEntries(recentFolderEntries);
+        if (activity.drawerEntryAdapter != null) activity.drawerEntryAdapter.setEntries(fixedEntries);
         if (activity.drawerFixedEntryAdapter != null) activity.drawerFixedEntryAdapter.setEntries(new ArrayList<>());
-        if (activity.drawerShortcutEntryAdapter != null) activity.drawerShortcutEntryAdapter.setEntries(shortcutEntries);
 
         if (activity.drawerStorageList != null) {
-            applyRecentFolderListHeight(activity.drawerStorageList, recentFolderEntries.size());
+            applySingleDrawerListHeight(activity.drawerStorageList);
         }
         if (activity.drawerFixedList != null) {
             applyFixedRowListHeight(activity.drawerFixedList, 0, 0);
-        }
-        if (activity.drawerShortcutList != null) {
-            applyFixedRowListHeight(activity.drawerShortcutList, shortcutEntries.size(), 5);
-        }
-        if (activity.drawerRecentFoldersHeader != null) {
-            // Keep the Recent folders header anchored even after clearing the list.
-            // Only the clear action disappears so the title position/shape does not jump.
-            activity.drawerRecentFoldersHeader.setVisibility(View.VISIBLE);
-        }
-        if (activity.drawerRecentFoldersTitle != null) {
-            activity.drawerRecentFoldersTitle.setText(R.string.recent_folders);
-        }
-        if (activity.drawerRecentFoldersClearButton != null) {
-            activity.drawerRecentFoldersClearButton.setVisibility(recentFolderEntries.isEmpty() ? View.INVISIBLE : View.VISIBLE);
         }
     }
 
@@ -197,7 +155,7 @@ final class MainDrawerController {
         list.setVerticalScrollBarEnabled(itemCount > maxRows);
     }
 
-    private void applyRecentFolderListHeight(@NonNull RecyclerView list, int itemCount) {
+    private void applySingleDrawerListHeight(@NonNull RecyclerView list) {
         android.view.ViewGroup.LayoutParams rawLp = list.getLayoutParams();
         if (rawLp == null) return;
 
@@ -211,36 +169,10 @@ final class MainDrawerController {
             list.setLayoutParams(rawLp);
         }
 
-        // Keep this flexible list visible even when it is empty. It acts as the
-        // spacer above the bottom shortcut zone, so Recent/Internal/External/
-        // Downloads and user folder shortcuts stay attached to the bottom buttons
-        // instead of floating under the recent-folder section.
         list.setVisibility(View.VISIBLE);
         list.setNestedScrollingEnabled(true);
-        list.setOverScrollMode(itemCount > 0
-                ? View.OVER_SCROLL_IF_CONTENT_SCROLLS
-                : View.OVER_SCROLL_NEVER);
-        list.setVerticalScrollBarEnabled(itemCount > 0);
-    }
-
-    private void addShortcutPlaceholderRows(@NonNull List<DrawerEntry> entries) {
-        // The bottom shortcut/storage zone is a fixed-height scrollable window.
-        // Keep five visible rows so it stays attached above File Open / Bookmarks /
-        // Settings, but never let added shortcuts expand the drawer vertically.
-        final int visibleShortcutRows = 5;
-        int missing = Math.max(0, visibleShortcutRows - entries.size());
-        for (int i = 0; i < missing; i++) {
-            entries.add(new DrawerEntry(
-                    DrawerEntry.ACTION_FOLDER_SHORTCUT,
-                    R.drawable.ic_folder,
-                    getShortcutPlaceholderTitle(),
-                    null,
-                    null));
-        }
-    }
-
-    private String getShortcutPlaceholderTitle() {
-        return activity.getString(R.string.shortcut_placeholder);
+        list.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+        list.setVerticalScrollBarEnabled(true);
     }
 
     private void addShortcutFolderEntries(@NonNull List<DrawerEntry> entries) {
@@ -373,7 +305,6 @@ final class MainDrawerController {
     void setupDrawerBottomActions() {
         View openFile = activity.findViewById(R.id.drawer_btn_open_file);
         View bookmarks = activity.findViewById(R.id.drawer_btn_bookmarks);
-        View settings = activity.findViewById(R.id.drawer_btn_settings);
 
         if (openFile != null) {
             openFile.setOnClickListener(v -> {
@@ -385,12 +316,6 @@ final class MainDrawerController {
             bookmarks.setOnClickListener(v -> {
                 runActionThenCloseDrawerInBackground(() ->
                         activity.startActivity(new Intent(activity, BookmarkListActivity.class)));
-            });
-        }
-        if (settings != null) {
-            settings.setOnClickListener(v -> {
-                runActionThenCloseDrawerInBackground(() ->
-                        activity.startActivity(new Intent(activity, SettingsActivity.class)));
             });
         }
     }

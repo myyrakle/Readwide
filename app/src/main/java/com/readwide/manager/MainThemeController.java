@@ -58,11 +58,9 @@ final class MainThemeController {
         TextView recentTitle = activity.findViewById(R.id.recent_section_title);
         View searchBar = activity.findViewById(R.id.file_search_bar);
         View localPathBar = activity.findViewById(R.id.path_bar);
-        View drawerRecentHeader = activity.findViewById(R.id.drawer_recent_folders_header);
         View drawerBottomActions = activity.findViewById(R.id.drawer_bottom_actions);
         View drawerOpenFile = activity.findViewById(R.id.drawer_btn_open_file);
         View drawerBookmarks = activity.findViewById(R.id.drawer_btn_bookmarks);
-        View drawerSettings = activity.findViewById(R.id.drawer_btn_settings);
 
         if (root != null) root.setBackgroundColor(bg);
         if (activity.browserSection != null) activity.browserSection.setBackgroundColor(bg);
@@ -78,29 +76,13 @@ final class MainThemeController {
         if (activity.drawerLayout != null) {
             activity.drawerLayout.setStatusBarBackgroundColor(bar);
         }
-        // Recent-folder rows stay on the normal drawer background, matching the
-        // recent-file row surface. The Recent folders header itself matches the
-        // main Recent files header surface, while the status inset above it uses
-        // the main app bar color through DrawerLayout's status-bar background.
         if (activity.drawerStorageList != null) activity.drawerStorageList.setBackgroundColor(bg);
-        if (activity.drawerShortcutList != null) activity.drawerShortcutList.setBackgroundColor(bg);
-        int drawerRecentHeaderBg = panel;
-        int drawerRecentHeaderFg = UiColorUtils.readableChipTextColorForBackground(drawerRecentHeaderBg);
-        if (drawerRecentHeader != null) drawerRecentHeader.setBackgroundColor(drawerRecentHeaderBg);
-        if (activity.drawerRecentFoldersTitle != null) {
-            activity.drawerRecentFoldersTitle.setBackgroundColor(Color.TRANSPARENT);
-            activity.drawerRecentFoldersTitle.setTextColor(drawerRecentHeaderFg);
-        }
-        if (activity.drawerRecentFoldersClearButton != null) {
-            activity.drawerRecentFoldersClearButton.setBackgroundColor(Color.TRANSPARENT);
-        }
         if (drawerBottomActions != null) {
             drawerBottomActions.setBackgroundColor(bg);
             applyExplicitTextColors(drawerBottomActions, fg, sub);
         }
         applyDrawerBottomActionTheme(drawerOpenFile, bg, fg, drawerActionIcon);
         applyDrawerBottomActionTheme(drawerBookmarks, bg, fg, drawerActionIcon);
-        applyDrawerBottomActionTheme(drawerSettings, bg, fg, drawerActionIcon);
         if (recentHeaderRow != null) recentHeaderRow.setBackgroundColor(panel);
         if (recentTitle != null) {
             recentTitle.setBackgroundColor(Color.TRANSPARENT);
@@ -108,9 +90,6 @@ final class MainThemeController {
         }
         if (activity.recentClearAllButton != null) {
             activity.recentClearAllButton.setTextColor(sub);
-        }
-        if (activity.drawerRecentFoldersClearButton != null) {
-            activity.drawerRecentFoldersClearButton.setTextColor(drawerRecentHeaderFg);
         }
         if (searchBar != null) {
             searchBar.setBackgroundColor(bg);
@@ -174,7 +153,6 @@ final class MainThemeController {
         controller.setAppearanceLightNavigationBars(!dark);
         if (activity.drawerEntryAdapter != null) activity.drawerEntryAdapter.refreshTheme();
         if (activity.drawerFixedEntryAdapter != null) activity.drawerFixedEntryAdapter.refreshTheme();
-        if (activity.drawerShortcutEntryAdapter != null) activity.drawerShortcutEntryAdapter.refreshTheme();
         if (activity.fileAdapter != null) activity.fileAdapter.refreshTheme();
         if (activity.recentAdapter != null) activity.recentAdapter.refreshTheme();
         activity.updateFileTypeChips();
